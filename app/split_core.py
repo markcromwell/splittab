@@ -1,6 +1,8 @@
 from decimal import Decimal, ROUND_HALF_UP
 from typing import SupportsFloat
 
+from app.config import MAX_PEOPLE
+
 
 def compute_total_charged_cents(
     subtotal_cents: int,
@@ -20,6 +22,9 @@ def compute_total_charged_cents(
 
 
 def split_evenly(total: int, people: int) -> list[int]:
+    if people <= 0 or people > MAX_PEOPLE:
+        raise ValueError(f"people must be between 1 and {MAX_PEOPLE}")
+
     base = total // people
     remainder = total % people
     return [base + 1] * remainder + [base] * (people - remainder)
