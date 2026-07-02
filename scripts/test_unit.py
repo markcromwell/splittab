@@ -1,3 +1,6 @@
+import shlex
+from pathlib import Path
+
 from fastapi.testclient import TestClient
 
 from app import create_app
@@ -5,6 +8,48 @@ from app.config import MAX_PEOPLE, settings
 from app.split_core import compute_total_charged_cents, split_evenly
 
 client = TestClient(create_app())
+
+
+def _dockerfile_commands():
+    dockerfile = Path(__file__).resolve().parents[1] / "Dockerfile"
+    logical_lines = []
+    pending = ""
+
+    for raw_line in dockerfile.read_text().splitlines():
+        line = raw_line.strip()
+        if not line or line.startswith("#"):
+            continue
+        if line.endswith("\\"):
+            pending += line[:-1] + " "
+            continue
+        logical_lines.append(pending + line)
+        pending = ""
+
+    if pending:
+        logical_lines.append(pending)
+
+    return logical_lines
+
+
+def test_dockerfile_apt_get_install_packages_are_version_pinned():
+    checked_packages = []
+
+    for command in _dockerfile_commands():
+        tokens = shlex.split(command)
+        for index, token in enumerate(tokens[:-1]):
+            if token != "apt-get" or tokens[index + 1] != "install":
+                continue
+
+            for package in tokens[index + 2:]:
+                if package in {"&&", ";"}:
+                    break
+                if package.startswith("-"):
+                    continue
+
+                checked_packages.append(package)
+                assert "=" in package, f"apt-get install package must be pinned: {package}"
+
+    assert checked_packages
 
 
 def test_root_landing_payload():
@@ -264,4 +309,3 @@ def test_setup_run_install_subprocess_failure():
         assert kwargs.get("shell") is not True
         
         mock_exit.assert_called_once_with(1)
-
