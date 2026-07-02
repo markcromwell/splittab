@@ -10,6 +10,7 @@ class Settings(BaseSettings):
     app_name: str = "SplitTab"
     version: str = "0.1.0"
     database_url: str = "sqlite:///./app.db"  # override via env for Postgres
+    expose_openapi: bool = False
 
 
 settings = Settings()

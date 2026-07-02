@@ -1,7 +1,7 @@
 from fastapi.testclient import TestClient
 
 from app import create_app
-from app.config import MAX_PEOPLE
+from app.config import MAX_PEOPLE, settings
 from app.split_core import compute_total_charged_cents, split_evenly
 
 client = TestClient(create_app())
@@ -10,7 +10,33 @@ client = TestClient(create_app())
 def test_root_landing_payload():
     resp = client.get("/")
     assert resp.status_code == 200
+    assert resp.json() == {"app_name": "SplitTab", "docs": None}
+
+
+def test_root_landing_payload_advertises_docs_when_openapi_exposed(monkeypatch):
+    monkeypatch.setattr(settings, "expose_openapi", True)
+    exposed_client = TestClient(create_app())
+
+    resp = exposed_client.get("/")
+
+    assert resp.status_code == 200
     assert resp.json() == {"app_name": "SplitTab", "docs": "/docs"}
+
+
+def test_openapi_and_docs_are_disabled_by_default():
+    for path in ("/openapi.json", "/docs", "/redoc"):
+        resp = client.get(path)
+        assert resp.status_code == 404
+
+
+def test_openapi_is_served_when_enabled(monkeypatch):
+    monkeypatch.setattr(settings, "expose_openapi", True)
+    exposed_client = TestClient(create_app())
+
+    resp = exposed_client.get("/openapi.json")
+
+    assert resp.status_code == 200
+    assert resp.json()["info"]["title"] == "SplitTab"
 
 
 def test_health_ok():
