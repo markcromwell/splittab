@@ -19,6 +19,7 @@ import sys
 import time
 import urllib.error
 import urllib.request
+import urllib.parse
 from pathlib import Path
 
 _ROOT = Path(__file__).resolve().parent.parent
@@ -80,10 +81,18 @@ def write_env(values: dict[str, str], env_path: Path) -> None:
 
 
 def wait_healthy(url: str, timeout: int = 60) -> bool:
+    try:
+        parsed = urllib.parse.urlparse(url)
+        if parsed.scheme.lower() not in ("http", "https"):
+            return False
+    except Exception:
+        return False
+
     deadline = time.time() + timeout
     while time.time() < deadline:
         try:
-            urllib.request.urlopen(url, timeout=5)
+            with urllib.request.urlopen(url, timeout=5) as response:  # nosec B310
+                response.read(4096)
             return True
         except Exception:
             time.sleep(2)

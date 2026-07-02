@@ -141,3 +141,46 @@ def test_split_api_accepts_max_people():
     assert body["total_charged_cents"] == 1000
     assert len(body["per_person"]) == MAX_PEOPLE
     assert sum(body["per_person"]) == body["total_charged_cents"]
+
+
+def test_wait_healthy_scheme_guard():
+    from unittest.mock import patch, MagicMock
+    from scripts.setup import wait_healthy
+
+    # 1) Assert that file://, ftp://, and custom:// URLs are rejected and return False
+    # and urllib.request.urlopen is never called
+    with patch("urllib.request.urlopen") as mock_urlopen:
+        assert wait_healthy("file:///etc/passwd") is False
+        assert wait_healthy("ftp://example.com/file") is False
+        assert wait_healthy("custom://example.com/api") is False
+        mock_urlopen.assert_not_called()
+
+    # 2) Assert that http:// and https:// URLs pass the scheme guard (i.e. urlopen is called)
+    # and if urlopen succeeds, wait_healthy returns True.
+    # Also assert that the response is read with a bounded limit.
+    with patch("urllib.request.urlopen") as mock_urlopen:
+        mock_response = MagicMock()
+        mock_urlopen.return_value.__enter__.return_value = mock_response
+
+        # Test http://
+        assert wait_healthy("http://localhost:8000/health", timeout=1) is True
+        mock_urlopen.assert_called_with("http://localhost:8000/health", timeout=5)
+        mock_response.read.assert_called_with(4096)
+
+        # Reset and test https://
+        mock_urlopen.reset_mock()
+        mock_response.read.reset_mock()
+        assert wait_healthy("https://localhost:8000/health", timeout=1) is True
+        mock_urlopen.assert_called_with("https://localhost:8000/health", timeout=5)
+        mock_response.read.assert_called_with(4096)
+
+    # 3) Assert that if urlopen raises an exception, wait_healthy continues trying and
+    # returns False when it times out (or after the timeout has passed).
+    # We mock time.time to simulate time passing and mock time.sleep to avoid delay.
+    time_values = [100, 100, 102, 104]
+    with patch("urllib.request.urlopen", side_effect=Exception("Connection refused")) as mock_urlopen, \
+         patch("time.sleep") as mock_sleep, \
+         patch("time.time", side_effect=time_values):
+        assert wait_healthy("http://localhost:8000/health", timeout=2) is False
+        assert mock_urlopen.call_count > 0
+        assert mock_sleep.call_count > 0
