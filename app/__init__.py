@@ -11,7 +11,16 @@ def create_app() -> FastAPI:
     # App factory. /health is always wired; EVERY router under app/routers/ is auto-included so the
     # boot-smoke import exercises the whole app graph — this is what catches missing deps (jinja2 /
     # python-multipart) before deploy. Drop a new app/routers/<name>.py exposing `router` and it's live.
-    application = FastAPI(title=settings.app_name, version=settings.version)
+    openapi_url = "/openapi.json" if settings.expose_openapi else None
+    docs_url = "/docs" if settings.expose_openapi else None
+    redoc_url = "/redoc" if settings.expose_openapi else None
+    application = FastAPI(
+        title=settings.app_name,
+        version=settings.version,
+        openapi_url=openapi_url,
+        docs_url=docs_url,
+        redoc_url=redoc_url,
+    )
     application.include_router(health_router)
     import app.routers as routers_pkg
     for mod in pkgutil.iter_modules(routers_pkg.__path__):
