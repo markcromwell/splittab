@@ -210,3 +210,58 @@ def test_wait_healthy_scheme_guard():
         assert wait_healthy("http://localhost:8000/health", timeout=2) is False
         assert mock_urlopen.call_count > 0
         assert mock_sleep.call_count > 0
+
+
+def test_setup_run_install_subprocess_success():
+    from unittest.mock import patch, MagicMock
+    from scripts.setup import run_install
+
+    mock_args = MagicMock()
+    mock_subprocess_result = MagicMock()
+    mock_subprocess_result.returncode = 0
+
+    with patch("scripts.setup.check_prerequisites", return_value=True), \
+         patch("pathlib.Path.exists", return_value=False), \
+         patch("scripts.setup.wait_healthy", return_value=True), \
+         patch("subprocess.run", return_value=mock_subprocess_result) as mock_run:
+        
+        run_install(mock_args)
+
+        mock_run.assert_called_once()
+        args, kwargs = mock_run.call_args
+        
+        argv = args[0]
+        assert isinstance(argv, list)
+        assert len(argv) > 0
+        assert argv[0] == "docker"
+        assert argv == ["docker", "compose", "up", "-d", "--build"]
+        assert kwargs.get("shell") is not True
+
+
+def test_setup_run_install_subprocess_failure():
+    from unittest.mock import patch, MagicMock
+    from scripts.setup import run_install
+
+    mock_args = MagicMock()
+    mock_subprocess_result = MagicMock()
+    mock_subprocess_result.returncode = 1
+
+    with patch("scripts.setup.check_prerequisites", return_value=True), \
+         patch("pathlib.Path.exists", return_value=False), \
+         patch("scripts.setup.wait_healthy", return_value=True), \
+         patch("subprocess.run", return_value=mock_subprocess_result) as mock_run, \
+         patch("sys.exit") as mock_exit:
+        
+        run_install(mock_args)
+
+        mock_run.assert_called_once()
+        args, kwargs = mock_run.call_args
+        
+        argv = args[0]
+        assert isinstance(argv, list)
+        assert len(argv) > 0
+        assert argv[0] == "docker"
+        assert kwargs.get("shell") is not True
+        
+        mock_exit.assert_called_once_with(1)
+

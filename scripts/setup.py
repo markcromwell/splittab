@@ -14,7 +14,7 @@ import os
 import platform
 import shutil
 import socket
-import subprocess
+import subprocess  # nosec B404 - subprocess used safely with hardcoded argv
 import sys
 import time
 import urllib.error
@@ -127,7 +127,7 @@ def run_install(args):
 
     # 3. Docker compose up
     print("\nStarting services...")
-    result = subprocess.run(
+    result = subprocess.run(  # nosec B603 - static literal argv, shell=False
         ["docker", "compose", "up", "-d", "--build"],
         cwd=_ROOT, capture_output=False,
     )
