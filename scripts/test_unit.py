@@ -1,6 +1,7 @@
 from fastapi.testclient import TestClient
 
 from app import create_app
+from app.config import MAX_PEOPLE
 from app.split_core import compute_total_charged_cents, split_evenly
 
 client = TestClient(create_app())
@@ -35,6 +36,7 @@ def test_split_evenly_exact_sum_invariant_table():
         ("people greater than subtotal cents", 2, 3),
         ("fractional percent tip", compute_total_charged_cents(1000, 12.5, 0), 4),
         ("large group", 12345, 1000),
+        ("max group", 12345, MAX_PEOPLE),
     ]
 
     for label, total, people in cases:
@@ -55,6 +57,18 @@ def test_split_evenly_remainder_goes_to_first_people():
     assert per_person[:remainder] == [base + 1] * remainder
     assert per_person[remainder:] == [base] * (people - remainder)
     assert sum(per_person) == total
+
+
+def test_split_evenly_rejects_people_outside_bounds():
+    invalid_people_counts = [0, -1, MAX_PEOPLE + 1]
+
+    for people in invalid_people_counts:
+        try:
+            split_evenly(100, people)
+        except ValueError as exc:
+            assert f"1 and {MAX_PEOPLE}" in str(exc)
+        else:
+            raise AssertionError(f"expected ValueError for people={people}")
 
 
 def test_split_api_happy_path_exact_sum():
@@ -90,6 +104,7 @@ def test_split_api_validation_errors_return_422():
         {"tax_cents": -1},
         {"subtotal_cents": None},
         {"people": "many"},
+        {"people": MAX_PEOPLE + 1},
     ]
 
     for override in invalid_cases:
@@ -108,3 +123,21 @@ def test_split_api_missing_field_returns_422():
     resp = client.post("/split", json=payload)
 
     assert resp.status_code == 422
+
+
+def test_split_api_accepts_max_people():
+    resp = client.post(
+        "/split",
+        json={
+            "subtotal_cents": 1000,
+            "people": MAX_PEOPLE,
+            "tip_pct": 0,
+            "tax_cents": 0,
+        },
+    )
+
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["total_charged_cents"] == 1000
+    assert len(body["per_person"]) == MAX_PEOPLE
+    assert sum(body["per_person"]) == body["total_charged_cents"]

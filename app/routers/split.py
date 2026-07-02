@@ -1,6 +1,7 @@
 from fastapi import APIRouter
 from pydantic import BaseModel, Field
 
+from app.config import MAX_PEOPLE
 from app.split_core import compute_total_charged_cents, split_evenly
 
 router = APIRouter()
@@ -8,7 +9,7 @@ router = APIRouter()
 
 class SplitRequest(BaseModel):
     subtotal_cents: int = Field(gt=0)
-    people: int = Field(gt=0)
+    people: int = Field(gt=0, le=MAX_PEOPLE)
     tip_pct: float = Field(ge=0)
     tax_cents: int = Field(ge=0)
 
