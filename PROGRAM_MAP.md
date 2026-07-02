@@ -6,7 +6,10 @@
 <!--Do not edit sections II, III, IV manually — they will be overwritten.-->
 
 ## I. Implementation Status [CURATED]
-_No specs merged yet._
+SplitTab MVP is implemented as a standalone FastAPI service with:
+- `GET /health` returning `{"status": "ok"}`.
+- `POST /split` accepting subtotal, people, tip percentage, and tax inputs.
+- Pure integer-cent split computation in `app.split_core`.
 
 ---
 
@@ -28,7 +31,17 @@ _No routes detected yet._
 ---
 
 ## V. Architectural Decisions [CURATED]
-_No decisions recorded yet._
+### ADR: SplitTab tip rounding and cent distribution
+
+Tip cents are rounded with the HALF-UP convention: compute
+`subtotal_cents * tip_pct / 100`, then round fractional cents so `.5` rounds up
+to the next cent. The charged total is always
+`subtotal_cents + rounded_tip_cents + tax_cents`.
+
+Splits must preserve the hard invariant
+`sum(per_person) == total_charged_cents`. The service computes
+`base = total_charged_cents // people` and `rem = total_charged_cents % people`;
+the first `rem` people pay `base + 1`, and the remaining people pay `base`.
 
 ---
 
