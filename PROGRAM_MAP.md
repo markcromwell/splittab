@@ -1,30 +1,47 @@
 # Program Map: SplitTab
 
-<!--GENERATED:BEGIN hash=UNINITIALIZED-->
-<!--This map is maintained automatically by Code Forge.-->
-<!--Sections II, III, IV are generated from AST after each successful merge.-->
-<!--Do not edit sections II, III, IV manually — they will be overwritten.-->
-
-## I. Implementation Status [CURATED]
-SplitTab MVP is implemented as a standalone FastAPI service with:
-- `GET /health` returning `{"status": "ok"}`.
-- `POST /split` accepting subtotal, people, tip percentage, and tax inputs.
-- Pure integer-cent split computation in `app.split_core`.
-
----
+<!--GENERATED:BEGIN hash=2c3dcc19584f600c66e09c1ef485d055389f1da66af6dd0b06f6ecb913105e2d sig= job=0 commit=aa39a8e735918c9829da35795280ffbe803989bf-->
+<!--Generated 2026-07-02T13:34:01.152761+00:00. Do not edit — will be overwritten.-->
 
 ## II. Canonical Data Schema [GENERATED — do not edit]
-_No models detected yet._
 
----
+_No SQLAlchemy models found._
 
 ## III. File and Module Map [GENERATED — do not edit]
-_Will be populated after first merge._
 
----
+```
+.dockerignore
+.env.example
+.github/workflows/ci.yml
+.gitignore
+Dockerfile
+PROGRAM_MAP.md
+README.md
+app/__init__.py
+app/config.py
+app/health.py
+app/routers/__init__.py
+app/routers/root.py
+app/routers/split.py
+app/split_core.py
+docker-compose.yml
+main.py
+pyproject.toml
+requirements.in
+requirements.lock
+scripts/__init__.py
+scripts/setup.py
+scripts/smoke_boot.py
+scripts/test_unit.py
+```
 
 ## IV. API Surface [GENERATED — do not edit]
-_No routes detected yet._
+
+| Method | Path | Status Code |
+|--------|------|-------------|
+| GET | `/` | 200 |
+| GET | `/health` | 200 |
+| POST | `/split` | 200 |
 
 <!--GENERATED:END-->
 

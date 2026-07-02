@@ -6,6 +6,12 @@ from app.split_core import compute_total_charged_cents, split_evenly
 client = TestClient(create_app())
 
 
+def test_root_landing_payload():
+    resp = client.get("/")
+    assert resp.status_code == 200
+    assert resp.json() == {"app_name": "SplitTab", "docs": "/docs"}
+
+
 def test_health_ok():
     resp = client.get("/health")
     assert resp.status_code == 200
